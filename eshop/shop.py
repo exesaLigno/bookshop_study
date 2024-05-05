@@ -11,19 +11,16 @@ class Book:
     publisher: str
     genre: str
 
-class Cart:
-
-    carts_counter = 0
-    
-    def __init__(self, buyer_login: str):
+class Cart:    
+    def __init__(self, buyer_login: str, cart_id: int):
         self.buyer_login: str = buyer_login
         self.shop_list: list[Book] = []
-        self.pk: int = self.carts_counter
-        self.carts_counter += 1
+        self.pk: int = cart_id
         self.delivery: bool = False
         self.delivery_adress: str | None = None
         self.delivery_time: str | None = None
         self.payment_method: str | None = None
+        self.returned: bool = False
     
     def add_book_to_cart(self, book: Book) -> None:
         self.shop_list.append(book)
@@ -33,6 +30,17 @@ class Cart:
         self.delivery_adress = delivery_adress
         self.delivery_time = delivery_time
         self.payment_method = payment_method
+
+    def __str__(self) -> str:
+        cart = f'cart #{self.pk} of user #{self.buyer_login}'
+        content = ', '.join(map(lambda book: book.title, self.shop_list))
+        if content != '':
+            return f'{cart}: {content}'
+        else:
+            return f'empty {cart}'
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 class Shop:
 
@@ -45,7 +53,8 @@ class Shop:
         'добавить_в_корзину': 'add_book_to_cart',
         'доставить': 'deliver',
         'очистить_корзину': 'clear_cart',
-        'заказы': 'orders'
+        'заказы': 'orders',
+        'вернуть_заказ': 'return_order',
     }
 
     @classmethod
@@ -64,6 +73,7 @@ class Shop:
         self.users: dict[str, bool] = {}
         self.current_user: str | None = None
         self.books_catalog: list[Book] = []
+        self.carts_counter: int = 0
         self.carts: list[Cart] = []
 
     def process(self, command_line: str) -> str:
@@ -126,7 +136,8 @@ class Shop:
     def add_book_to_cart(self, args: list[str]) -> str:
         user_carts = list(filter(lambda cart: cart.buyer_login == self.current_user and not cart.delivery, self.carts))
         if len(user_carts) == 0:
-            new_cart = Cart(self.current_user)
+            new_cart = Cart(self.current_user, self.carts_counter)
+            self.carts_counter += 1
             self.carts.append(new_cart)
             cart = new_cart
         else:
@@ -142,7 +153,8 @@ class Shop:
     def deliver(self, args: list[str]) -> str:
         user_carts = list(filter(lambda cart: cart.buyer_login == self.current_user and not cart.delivery, self.carts))
         if len(user_carts) == 0:
-            new_cart = Cart(self.current_user)
+            new_cart = Cart(self.current_user, self.carts_counter)
+            self.carts_counter += 1
             self.carts.append(new_cart)
             cart = new_cart
         else:
@@ -155,7 +167,8 @@ class Shop:
     def clear_cart(self, args: list[str]) -> str:
         user_carts = list(filter(lambda cart: cart.buyer_login == self.current_user and not cart.delivery, self.carts))
         if len(user_carts) == 0:
-            new_cart = Cart(self.current_user)
+            new_cart = Cart(self.current_user, self.carts_counter)
+            self.carts_counter += 1
             self.carts.append(new_cart)
             cart = new_cart
         else:
@@ -165,8 +178,19 @@ class Shop:
         return 'Ваша корзина очищена.'
 
     def orders(self, args: list[str]) -> str:
+        message = 'У вас нет активных заказов.'
         orders = list(filter(lambda cart: cart.buyer_login == self.current_user and cart.delivery, self.carts))
-        if len(orders) == 0:
-            return 'У вас нет активных заказов.'
-        else:
-            pass
+        if len(orders) != 0:
+            message = 'Ваши заказы:'
+            for order in orders:
+                message += f'\n\tЗаказ #{order.pk}: {order.delivery_time}, {order.payment_method}'
+        return message
+
+    def return_order(self, args: list[str]) -> str:
+        message = 'Заказ с указанным номером не найден.'
+        orders_to_return = list(filter(lambda cart: cart.pk == int(args[0]), self.carts))
+        if len(orders_to_return) != 0:
+            orders_to_return[0].returned = True
+            orders_to_return[0].delivery = False
+            message = f'Заказ #{orders_to_return[0].pk} отменен.'
+        return message
