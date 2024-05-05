@@ -20,6 +20,8 @@ class Cart:
         self.delivery_adress: str | None = None
         self.delivery_time: str | None = None
         self.payment_method: str | None = None
+        self.delivered: bool = False
+        self.returns: bool = False
         self.returned: bool = False
     
     def add_book_to_cart(self, book: Book) -> None:
@@ -31,16 +33,16 @@ class Cart:
         self.delivery_time = delivery_time
         self.payment_method = payment_method
 
-    def __str__(self) -> str:
-        cart = f'cart #{self.pk} of user #{self.buyer_login}'
-        content = ', '.join(map(lambda book: book.title, self.shop_list))
-        if content != '':
-            return f'{cart}: {content}'
-        else:
-            return f'empty {cart}'
+    # def __str__(self) -> str:
+    #     cart = f'cart #{self.pk} of user #{self.buyer_login}'
+    #     content = ', '.join(map(lambda book: book.title, self.shop_list))
+    #     if content != '':
+    #         return f'{cart}: {content}'
+    #     else:
+    #         return f'empty {cart}'
 
-    def __repr__(self) -> str:
-        return self.__str__()
+    # def __repr__(self) -> str:
+    #     return self.__str__()
 
 class Shop:
 
@@ -55,6 +57,10 @@ class Shop:
         'очистить_корзину': 'clear_cart',
         'заказы': 'orders',
         'вернуть_заказ': 'return_order',
+        'все_заказы': 'all_orders',
+        'все_возвраты': 'all_returns',
+        'подтвердить_доставку': 'finish_delivery',
+        'одобрить_возврат': 'accept_return',
     }
 
     @classmethod
@@ -153,10 +159,7 @@ class Shop:
     def deliver(self, args: list[str]) -> str:
         user_carts = list(filter(lambda cart: cart.buyer_login == self.current_user and not cart.delivery, self.carts))
         if len(user_carts) == 0:
-            new_cart = Cart(self.current_user, self.carts_counter)
-            self.carts_counter += 1
-            self.carts.append(new_cart)
-            cart = new_cart
+            return 'Ваша корзина пуста, невозможно оформить доставку!'
         else:
             cart = user_carts[0]
 
@@ -165,17 +168,12 @@ class Shop:
         return f'Доставка оформлена, заказ #{cart.pk}'
 
     def clear_cart(self, args: list[str]) -> str:
+        message = 'Ваша корзина очищена.'
         user_carts = list(filter(lambda cart: cart.buyer_login == self.current_user and not cart.delivery, self.carts))
-        if len(user_carts) == 0:
-            new_cart = Cart(self.current_user, self.carts_counter)
-            self.carts_counter += 1
-            self.carts.append(new_cart)
-            cart = new_cart
-        else:
-            cart = user_carts[0]
+        if len(user_carts) != 0:
+            user_carts[0].shop_list = []
 
-        cart.shop_list = []
-        return 'Ваша корзина очищена.'
+        return message
 
     def orders(self, args: list[str]) -> str:
         message = 'У вас нет активных заказов.'
@@ -190,7 +188,43 @@ class Shop:
         message = 'Заказ с указанным номером не найден.'
         orders_to_return = list(filter(lambda cart: cart.pk == int(args[0]), self.carts))
         if len(orders_to_return) != 0:
-            orders_to_return[0].returned = True
+            orders_to_return[0].returns = True
             orders_to_return[0].delivery = False
             message = f'Заказ #{orders_to_return[0].pk} отменен.'
+        return message
+
+    def all_orders(self, args: list[str]) -> str:
+        message = 'Пользователи не заказали ни одной доставки'
+        orders_to_deliver = list(filter(lambda cart: cart.delivery and not cart.delivered and not cart.returns and not cart.returned, self.carts))
+        if len(orders_to_deliver) != 0:
+            message = 'Все активные доставки:'
+            for order in orders_to_deliver:
+                message += f'\n\tЗаказ #{order.pk} ({order.buyer_login}): {order.delivery_adress}, {order.delivery_time}, {order.payment_method}'
+        return message
+
+    def all_returns(self, args: list[str]) -> str:
+        message = 'Ни одного возврата не оформлено'
+        orders_to_return = list(filter(lambda cart: cart.returns and not cart.returned, self.carts))
+        if len(orders_to_return) != 0:
+            message = 'Все возвраты:'
+            for order in orders_to_return:
+                message += f'\n\tЗаказ #{order.pk} ({order.buyer_login}): {order.delivery_adress}, {order.delivery_time}, {order.payment_method}'
+        return message
+
+    def finish_delivery(self, args: list[str]) -> str:
+        message = 'Заказ с указанным номером не найден.'
+        orders_to_finish_delivery = list(filter(lambda cart: cart.pk == int(args[0]), self.carts))
+        if len(orders_to_finish_delivery) != 0:
+            orders_to_finish_delivery[0].delivery = False
+            orders_to_finish_delivery[0].delivered = True
+            message = f'Заказ #{orders_to_finish_delivery[0].pk} был доставлен.'
+        return message
+
+    def accept_return(self, args: list[str]) -> str:
+        message = 'Заказ с указанным номером не найден.'
+        orders_to_accept_return = list(filter(lambda cart: cart.pk == int(args[0]), self.carts))
+        if len(orders_to_accept_return) != 0:
+            orders_to_accept_return[0].returns = False
+            orders_to_accept_return[0].returned = True
+            message = f'Возврат заказа #{orders_to_accept_return[0].pk} был одобрен.'
         return message
