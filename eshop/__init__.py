@@ -1,4 +1,16 @@
 '''Shop module'''
+from dataclasses import dataclass
+
+
+@dataclass
+class Book:
+    '''Book representation'''
+    title: str
+    author: str
+    issue_year: int
+    price: float
+    publisher: str
+    genre: str
 
 
 class Shop:
@@ -7,6 +19,8 @@ class Shop:
     handlers: dict[str, str] = {
         'вход': 'login',
         'выход': 'unlogin',
+        'каталог': 'catalog',
+        'добавить_товар': 'add_book',
     }
 
     @classmethod
@@ -25,6 +39,7 @@ class Shop:
         '''Initialize shop object'''
         self.users: dict[str, bool] = {}
         self.current_user: str | None = None
+        self.books_catalog: list[Book] = []
 
     def process(self, command_line: str) -> str:
         '''Processor for external command line'''
@@ -64,3 +79,22 @@ class Shop:
                 message = f'До свидания, {self.current_user}!'
                 self.current_user = None
         return message
+
+    def catalog(self, args: list[str]) -> str:
+        '''Show catalog'''
+        message = 'В данную функцию не нужно передавать аргументы!'
+        if len(args) == 0:
+            message = 'Каталог пуст!'
+            if len(self.books_catalog) != 0:
+                message = 'Каталог:'
+                for book in self.books_catalog:
+                    message += f'\n\t{book.title} ({book.author})'
+                    message += f' --- {book.price}'
+        return message
+
+    def add_book(self, args: list[str]) -> str:
+        '''Adding book into a catalog'''
+        new_book = Book(
+            args[0], args[1], int(args[2]), float(args[3]), args[4], args[5])
+        self.books_catalog.append(new_book)
+        return f'Книга "{new_book.title}" добавлена в каталог!'
