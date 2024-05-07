@@ -13,6 +13,24 @@ class Book:
     genre: str
 
 
+class Cart:
+    '''Cart representation'''
+    def __init__(self, buyer_login: str, cart_id: int):
+        '''Initializer of cart'''
+        self.buyer_login: str = buyer_login
+        self.shop_list: list[Book] = []
+        self.primary_key: int = cart_id
+        self.delivery: bool = False
+
+    def add_book_to_cart(self, book: Book) -> None:
+        '''Method for adding new book to cart'''
+        self.shop_list.append(book)
+
+    def deliver(self) -> None:
+        '''Deliver contents of a cart'''
+        return None
+
+
 class Shop:
     '''Shop class'''
 
@@ -21,6 +39,9 @@ class Shop:
         'выход': 'unlogin',
         'каталог': 'catalog',
         'добавить_товар': 'add_book',
+        'корзина': 'show_cart',
+        'добавить_в_корзину': 'add_book_to_cart',
+        'очистить_корзину': 'clear_cart',
     }
 
     @classmethod
@@ -40,6 +61,8 @@ class Shop:
         self.users: dict[str, bool] = {}
         self.current_user: str | None = None
         self.books_catalog: list[Book] = []
+        self.carts_counter: int = 0
+        self.carts: list[Cart] = []
 
     def process(self, command_line: str) -> str:
         '''Processor for external command line'''
@@ -98,3 +121,58 @@ class Shop:
             args[0], args[1], int(args[2]), float(args[3]), args[4], args[5])
         self.books_catalog.append(new_book)
         return f'Книга "{new_book.title}" добавлена в каталог!'
+
+    def show_cart(self, args: list[str]) -> str:
+        '''Showing cart contents'''
+        message = 'В данную функцию не нужно передавать аргументы!'
+        if len(args) == 0:
+            message = 'Ваша корзина пока пуста.'
+            user_carts = list(
+                filter(
+                    lambda cart: cart.buyer_login == self.current_user and
+                    not cart.delivery, self.carts))
+            if len(user_carts) != 0 and len(user_carts[0].shop_list) != 0:
+                message = 'Ваша корзина:'
+                for book in user_carts[0].shop_list:
+                    message += f'\n\t{book.title} ({book.author})'
+                    message += f' --- {book.price}'
+        return message
+
+    def add_book_to_cart(self, args: list[str]) -> str:
+        '''Adding book to cart'''
+        user_carts = list(
+            filter(
+                lambda cart: cart.buyer_login == self.current_user and
+                not cart.delivery, self.carts))
+        if len(user_carts) == 0 and self.current_user is not None:
+            new_cart = Cart(self.current_user, self.carts_counter)
+            self.carts_counter += 1
+            self.carts.append(new_cart)
+            cart = new_cart
+        else:
+            cart = user_carts[0]
+
+        suggested_books = list(
+            filter(
+                lambda book: book.title.lower() == args[0].lower(),
+                self.books_catalog))
+        if len(suggested_books) != 0:
+            cart.add_book_to_cart(suggested_books[0])
+            message = f'Книга "{suggested_books[0].title}" '
+            message += 'добавлена в вашу корзину.'
+
+        return message
+
+    def clear_cart(self, args: list[str]) -> str:
+        '''Clearing cart contents'''
+        message = 'В данную функцию не нужно передавать аргументы!'
+        if len(args) == 0:
+            message = 'Ваша корзина очищена.'
+            user_carts = list(
+                filter(
+                    lambda cart: cart.buyer_login == self.current_user and
+                    not cart.delivery, self.carts))
+            if len(user_carts) != 0:
+                user_carts[0].shop_list = []
+
+        return message
