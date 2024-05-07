@@ -25,7 +25,9 @@ class Cart:
         self.delivery_adress: str | None = None
         self.delivery_time: str | None = None
         self.payment_method: str | None = None
+        self.delivered: bool = False
         self.returns: bool = False
+        self.returned: bool = False
 
     def add_book_to_cart(self, book: Book) -> None:
         '''Method for adding new book to cart'''
@@ -54,6 +56,8 @@ class Shop:
         'доставить': 'deliver',
         'заказы': 'orders',
         'вернуть_заказ': 'return_order',
+        'все_заказы': 'all_orders',
+        'подтвердить_доставку': 'finish_delivery',
     }
 
     @classmethod
@@ -229,4 +233,35 @@ class Shop:
             orders_to_return[0].returns = True
             orders_to_return[0].delivery = False
             message = f'Заказ #{orders_to_return[0].primary_key} отменен.'
+        return message
+
+    def all_orders(self, args: list[str]) -> str:
+        '''List of all orders'''
+        message = 'В данную функцию не нужно передавать аргументы!'
+        if len(args) == 0:
+            message = 'Пользователи не заказали ни одной доставки'
+            orders_to_deliver = list(
+                filter(
+                    lambda cart: cart.delivery and not cart.delivered and
+                    not cart.returns and not cart.returned, self.carts))
+            if len(orders_to_deliver) != 0:
+                message = 'Все активные доставки:'
+                for order in orders_to_deliver:
+                    message += f'\n\tЗаказ #{order.primary_key}'
+                    message += f' ({order.buyer_login}):'
+                    message += f' {order.delivery_adress},'
+                    message += f' {order.delivery_time},'
+                    message += f' {order.payment_method}'
+        return message
+
+    def finish_delivery(self, args: list[str]) -> str:
+        '''Finish delivery'''
+        message = 'Заказ с указанным номером не найден.'
+        orders_to_finish_delivery = list(
+            filter(lambda cart: cart.primary_key == int(args[0]), self.carts))
+        if len(orders_to_finish_delivery) != 0:
+            orders_to_finish_delivery[0].delivery = False
+            orders_to_finish_delivery[0].delivered = True
+            message = f'Заказ #{orders_to_finish_delivery[0].primary_key} '
+            message += 'был доставлен'
         return message
