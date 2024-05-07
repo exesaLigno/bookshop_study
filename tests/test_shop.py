@@ -82,3 +82,14 @@ def test_deliver_order(filled_shop):
 	assert filled_shop.process('все_заказы') == 'Все активные доставки:\n\tЗаказ #0 (user): Ул. Пушкина, д. Колотушкина, 32 августа, 03:47, Оплата при получении'
 	assert filled_shop.process('подтвердить_доставку 0') == 'Заказ #0 был доставлен'
 	assert filled_shop.process('все_заказы') == 'Пользователи не заказали ни одной доставки'
+
+def test_accept_returns(filled_shop):
+	assert filled_shop.process('вход user') == 'Добро пожаловать, user!'
+	assert filled_shop.process('заказы') == 'У вас нет активных заказов.'
+	assert filled_shop.process('добавить_в_корзину 1984') == 'Книга "1984" добавлена в вашу корзину.'
+	assert filled_shop.process('доставить "Ул. Пушкина, д. Колотушкина" "32 августа, 03:47" "Оплата при получении"') == 'Доставка оформлена, заказ #0'
+	assert filled_shop.process('вернуть_заказ 0') == 'Заказ #0 отменен.'
+	assert filled_shop.process('вход admin') == 'Добро пожаловать, admin! Вы являетесь администратором!'
+	assert filled_shop.process('все_возвраты') == 'Все возвраты:\n\tЗаказ #0 (user): Ул. Пушкина, д. Колотушкина, 32 августа, 03:47, Оплата при получении'
+	assert filled_shop.process('одобрить_возврат 0') == 'Возврат заказа #0 был одобрен'
+	assert filled_shop.process('все_возвраты') == 'Ни одного возврата не оформлено'
