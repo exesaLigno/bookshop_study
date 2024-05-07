@@ -58,6 +58,8 @@ class Shop:
         'вернуть_заказ': 'return_order',
         'все_заказы': 'all_orders',
         'подтвердить_доставку': 'finish_delivery',
+        'все_возвраты': 'all_returns',
+        'одобрить_возврат': 'accept_return',
     }
 
     @classmethod
@@ -264,4 +266,36 @@ class Shop:
             orders_to_finish_delivery[0].delivered = True
             message = f'Заказ #{orders_to_finish_delivery[0].primary_key} '
             message += 'был доставлен'
+        return message
+
+    def all_returns(self, args: list[str]) -> str:
+        '''List of all active returns'''
+        message = 'В данную функцию не нужно передавать аргументы!'
+        if len(args) == 0:
+            message = 'Ни одного возврата не оформлено'
+            orders_to_return = list(
+                filter(
+                    lambda cart: cart.returns and
+                    not cart.returned, self.carts))
+            if len(orders_to_return) != 0:
+                message = 'Все возвраты:'
+                for order in orders_to_return:
+                    message += f'\n\tЗаказ #{order.primary_key}'
+                    message += f' ({order.buyer_login}):'
+                    message += f' {order.delivery_adress},'
+                    message += f' {order.delivery_time},'
+                    message += f' {order.payment_method}'
+        return message
+
+    def accept_return(self, args: list[str]) -> str:
+        '''Returns accept'''
+        message = 'Заказ с указанным номером не найден.'
+        orders_to_accept_return = list(
+            filter(
+                lambda cart: cart.primary_key == int(args[0]), self.carts))
+        if len(orders_to_accept_return) != 0:
+            orders_to_accept_return[0].returns = False
+            orders_to_accept_return[0].returned = True
+            message = 'Возврат заказа '
+            message += f'#{orders_to_accept_return[0].primary_key} был одобрен'
         return message
