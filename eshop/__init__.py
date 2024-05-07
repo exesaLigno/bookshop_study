@@ -14,6 +14,7 @@ class Book:
 
 
 class Cart:
+    # pylint: disable=too-many-instance-attributes
     '''Cart representation'''
     def __init__(self, buyer_login: str, cart_id: int):
         '''Initializer of cart'''
@@ -24,6 +25,7 @@ class Cart:
         self.delivery_adress: str | None = None
         self.delivery_time: str | None = None
         self.payment_method: str | None = None
+        self.returns: bool = False
 
     def add_book_to_cart(self, book: Book) -> None:
         '''Method for adding new book to cart'''
@@ -51,6 +53,7 @@ class Shop:
         'очистить_корзину': 'clear_cart',
         'доставить': 'deliver',
         'заказы': 'orders',
+        'вернуть_заказ': 'return_order',
     }
 
     @classmethod
@@ -214,4 +217,16 @@ class Shop:
                 for order in orders:
                     message += f'\n\tЗаказ #{order.primary_key}: '
                     message += f'{order.delivery_time}, {order.payment_method}'
+        return message
+
+    def return_order(self, args: list[str]) -> str:
+        '''Return of an order'''
+        message = 'Заказ с указанным номером не найден.'
+        orders_to_return = list(
+            filter(
+                lambda cart: cart.primary_key == int(args[0]), self.carts))
+        if len(orders_to_return) != 0:
+            orders_to_return[0].returns = True
+            orders_to_return[0].delivery = False
+            message = f'Заказ #{orders_to_return[0].primary_key} отменен.'
         return message
