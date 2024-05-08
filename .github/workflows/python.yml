@@ -27,7 +27,7 @@ jobs:
         poetry install
 
     - name: Run pytest
-      run: poetry run pytest --cov
+      run: poetry run pytest --cov --cov-branch
 
     - name: Run pylint
       run: poetry run pylint eshop
